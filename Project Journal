@@ -1,0 +1,20 @@
+CSC 2001 Project 1 - Process Journal
+
+September 17, 2026
+
+7:45 PM - 9:00 PM
+Worked by: Arnav
+
+Worked on Parts 1, 2, and 4 of the project functionality. I worked on setting up the session representations , implementing  Add Session , and implementing  Search . I also tested the code as I worked to make sure sessions could be added correctly and that searching by ID or mentor behaved as expected.
+
+10:10 PM - 11:30 PM
+Worked by: Ben
+
+Ben worked on the remaining project . He implemented the Display, Remove, and Register operations and worked on making sure the session  behaved correctly for these actions. He also tested the functionality and handled cases where an operation could not be completed, such as searching for or removing a session that did not exist or attempting to register for a full session.
+
+September 18, 2026
+
+12:15 PM - 12:50 PM
+Worked by: Arnav and Ben
+
+Worked together to combine and review our parts of the project. We tested the application as a whole, checked that the buttons interacted correctly with the session list, and fixed issues we noticed during testing. We also reviewed the project requirements, verified that sessions were displayed in chronological order, checked error handling, and made final adjustments to the program.

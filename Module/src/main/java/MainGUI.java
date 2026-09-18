@@ -1,6 +1,6 @@
 import javax.swing.*;
 import java.awt.*;
-import java.util.List;
+
 public class MainGUI extends JFrame {
     private JTextField idField;
     private JTextField titleField;
@@ -11,29 +11,80 @@ public class MainGUI extends JFrame {
 
     private JTextArea outputArea;
 
-    // there should be a private member variable named `sessions` :
-    // private SomethingOrOther sessions;
+    // One mentorship session. The participant count must be mutable for Register.
+    public static class Session {
+        private final int id;
+        private final String title;
+        private final String mentor;
+        private final String date;
+        private final String location;
+        private int participants;
+        private final int maxParticipants;
 
-    // the constructor for the class. This will initialize
-    // the class's member variables:
+        public Session(int id, String title, String mentor, String date,
+                       String location, int maxParticipants) {
+            this.id = id;
+            this.title = title;
+            this.mentor = mentor;
+            this.date = date;
+            this.location = location;
+            this.participants = 0;
+            this.maxParticipants = maxParticipants;
+        }
+
+        public int id() {
+            return id;
+        }
+
+        public String title() {
+            return title;
+        }
+
+        public String mentor() {
+            return mentor;
+        }
+
+        public String date() {
+            return date;
+        }
+
+        public String location() {
+            return location;
+        }
+
+        public int participants() {
+            return participants;
+        }
+
+        public int maxParticipants() {
+            return maxParticipants;
+        }
+
+        public void registerParticipant() {
+            participants++;
+        }
+    }
+
+    // One node in the linked list of sessions.
+    public record SessionNode(Session first, SessionNode rest) {}
+
+    private SessionNode sessions;
+
     public MainGUI() {
-        // set sessions to a new empty list:
-        // sessions = ...
+        // null represents an empty linked list.
+        sessions = null;
+
         setTitle("Employee Mentorship and Inclusion Manager");
         setSize(600, 600);
-        // when this frame/window closes, halt the whole program:
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         createGUI();
         setVisible(true);
     }
 
-    // Create all of the display elements in the frame:
     private void createGUI() {
-        // first, the input panel contains all of the field entry elements:
         JPanel inputPanel = new JPanel();
-        inputPanel.setLayout(new GridLayout(8,2,5,5));
-        // these are all of the input fields that will be in the frame:
+        inputPanel.setLayout(new GridLayout(8, 2, 5, 5));
         idField = new JTextField();
         titleField = new JTextField();
         mentorField = new JTextField();
@@ -54,7 +105,6 @@ public class MainGUI extends JFrame {
         inputPanel.add(maxField);
         add(inputPanel, BorderLayout.NORTH);
 
-        // next, the lower half of the window contains an output area
         outputArea = new JTextArea();
         outputArea.setEditable(false);
         JScrollPane scroll = new JScrollPane(outputArea);
@@ -74,7 +124,6 @@ public class MainGUI extends JFrame {
         buttonPanel.add(exitButton);
         add(buttonPanel, BorderLayout.SOUTH);
 
-        // Button Actions
         addButton.addActionListener(e -> addSession());
         displayButton.addActionListener(e -> displaySessions());
         searchButton.addActionListener(e -> searchSession());
@@ -83,7 +132,6 @@ public class MainGUI extends JFrame {
         exitButton.addActionListener(e -> System.exit(0));
     }
 
-    // set all input fields to empty strings, give focus to the first
     private void clearFields() {
         idField.setText("");
         titleField.setText("");
@@ -91,11 +139,25 @@ public class MainGUI extends JFrame {
         dateField.setText("");
         locationField.setText("");
         maxField.setText("");
-        // Put the cursor back in the first field
         idField.requestFocus();
     }
 
-    // the action of the Add Session button
+    // Return the session with this ID, or null if it is not present.
+    private Session searchByID(int id) {
+        SessionNode current = sessions;
+
+        while (current != null) {
+            if (current.first().id() == id) {
+                return current.first();
+            }
+
+            current = current.rest();
+        }
+
+        return null;
+    }
+
+    // 1. Add a session in date order.
     private void addSession() {
         try {
             int id = Integer.parseInt(idField.getText());
@@ -105,78 +167,187 @@ public class MainGUI extends JFrame {
             String location = locationField.getText();
             int maxParticipants = Integer.parseInt(maxField.getText());
 
-            // TO DO: construct a session object, insert it into
-            // the list of sessions
+            if (searchByID(id) != null) {
+                outputArea.setText("A session with that ID already exists.");
+                return;
+            }
 
+            if (maxParticipants < 0) {
+                outputArea.setText("Max participants cannot be negative.");
+                return;
+            }
+
+            Session session = new Session(
+                    id, title, mentor, date, location, maxParticipants
+            );
+
+            // Save the nodes that come before the insertion location.
+            SessionNode before = null;
+            SessionNode current = sessions;
+
+            while (current != null
+                    && current.first().date().compareTo(date) <= 0) {
+                before = new SessionNode(current.first(), before);
+                current = current.rest();
+            }
+
+            // Insert the new session before the first later session.
+            SessionNode result = new SessionNode(session, current);
+
+            // Put the earlier nodes back in their original order.
+            while (before != null) {
+                result = new SessionNode(before.first(), result);
+                before = before.rest();
+            }
+
+            sessions = result;
             outputArea.setText("Session Added Successfully\n");
-            // Clear the input fields
             clearFields();
         }
-        catch(Exception e) {
+        catch (Exception e) {
             outputArea.setText("Invalid input");
         }
     }
 
-    // display all sessions in the output area
+    // 2. Display every session in chronological order.
     private void displaySessions() {
         outputArea.setText("");
+        SessionNode current = sessions;
 
-        // iterate over sessions; display each one
-        // to the output window, using the `append`
-        // method of the outputArea.
-
-        // between each one, print a separator line,
-        // as e.g.
-
-        outputArea.append("\n--------------------\n");
+        while (current != null) {
+            outputArea.append("ID: " + current.first().id() + "\n");
+            outputArea.append("Title: " + current.first().title() + "\n");
+            outputArea.append("Mentor: " + current.first().mentor() + "\n");
+            outputArea.append("Date: " + current.first().date() + "\n");
+            outputArea.append("Location: " + current.first().location() + "\n");
+            outputArea.append("Participants: "
+                    + current.first().participants() + "/"
+                    + current.first().maxParticipants() + "\n");
+            outputArea.append("\n--------------------\n");
+            current = current.rest();
+        }
     }
 
-    // search by ID if presesnt, mentor otherwise, display results
+    // 3. Search by ID if present, mentor otherwise, and display results.
     private void searchSession() {
-        // Search by ID if the ID field is not empty
+        outputArea.setText("");
+
         if (!idField.getText().trim().isEmpty()) {
             int id = Integer.parseInt(idField.getText().trim());
-            // find session by ID, using a `searchByID` method
-            // ... code here ...
-            /* if (result != null)
-                // display session to the output area...
-            else
+            Session result = searchByID(id);
+
+            if (result != null) {
+                outputArea.append("ID: " + result.id() + "\n");
+                outputArea.append("Title: " + result.title() + "\n");
+                outputArea.append("Mentor: " + result.mentor() + "\n");
+                outputArea.append("Date: " + result.date() + "\n");
+                outputArea.append("Location: " + result.location() + "\n");
+                outputArea.append("Participants: " + result.participants()
+                        + "/" + result.maxParticipants() + "\n");
+            }
+            else {
                 outputArea.setText("Session not found.");
-             */
+            }
         }
-        // Otherwise, search by mentor if the Mentor field is not empty
         else if (!mentorField.getText().trim().isEmpty()) {
             String mentor = mentorField.getText().trim();
-            // find session by mentor. In this case, the result
-            // may be a list of sessions...
-            // ... code here ...
-            /*
-            if (result != null)
-                // display all sessions in the list
-            else
-                outputArea.setText("No session found for mentor: " + mentor);
-             */
+            SessionNode reversedResult = null;
+            SessionNode current = sessions;
+
+            // Build a linked list containing only this mentor's sessions.
+            while (current != null) {
+                if (current.first().mentor().equals(mentor)) {
+                    reversedResult = new SessionNode(
+                            current.first(), reversedResult
+                    );
+                }
+
+                current = current.rest();
+            }
+
+            // Reverse the matches so they remain in chronological order.
+            SessionNode result = null;
+
+            while (reversedResult != null) {
+                result = new SessionNode(reversedResult.first(), result);
+                reversedResult = reversedResult.rest();
+            }
+
+            if (result != null) {
+                current = result;
+
+                while (current != null) {
+                    outputArea.append("ID: " + current.first().id() + "\n");
+                    outputArea.append("Title: " + current.first().title() + "\n");
+                    outputArea.append("Mentor: " + current.first().mentor() + "\n");
+                    outputArea.append("Date: " + current.first().date() + "\n");
+                    outputArea.append("Location: "
+                            + current.first().location() + "\n");
+                    outputArea.append("Participants: "
+                            + current.first().participants() + "/"
+                            + current.first().maxParticipants() + "\n");
+                    outputArea.append("\n--------------------\n");
+                    current = current.rest();
+                }
+            }
+            else {
+                outputArea.setText(
+                        "No session found for mentor: " + mentor
+                );
+            }
         }
-        // Nothing entered
         else {
             outputArea.setText("Please enter a Session ID or Mentor name.");
         }
     }
 
-    // given an id, remove that session from the list
+    // 4. Remove the session with the ID in the ID field.
     private void removeSession() {
         int id = Integer.parseInt(idField.getText());
-        // remove the session, print an error to the outputArea
-        // if it's not found
-        // ... code here ...
+        SessionNode before = null;
+        SessionNode current = sessions;
+
+        // Save nodes until the session being removed is reached.
+        while (current != null && current.first().id() != id) {
+            before = new SessionNode(current.first(), before);
+            current = current.rest();
+        }
+
+        if (current == null) {
+            outputArea.setText("Session not found.");
+            return;
+        }
+
+        // Skip the matching node.
+        SessionNode result = current.rest();
+
+        // Put the earlier nodes back in their original order.
+        while (before != null) {
+            result = new SessionNode(before.first(), result);
+            before = before.rest();
+        }
+
+        sessions = result;
+        outputArea.setText("Session removed successfully.");
     }
 
-    // add one to the count of the specified session.
-    // MUTATES participant count of session.
+    // 5. Register one participant for the session with the specified ID.
     private void registerParticipant() {
         int id = Integer.parseInt(idField.getText());
-        // increment participants field of session,
-        // print success or failure message.
+        Session result = searchByID(id);
+
+        if (result == null) {
+            outputArea.setText("Session not found.");
+        }
+        else if (result.participants() >= result.maxParticipants()) {
+            outputArea.setText("Registration failed: session is full.");
+        }
+        else {
+            result.registerParticipant();
+            outputArea.setText("Participant registered successfully.\n"
+                    + "Participants: " + result.participants() + "/"
+                    + result.maxParticipants());
+        }
     }
 
     public static void main(String[] args) {
